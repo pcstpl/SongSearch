@@ -1,0 +1,127 @@
+﻿@model SearchYourTrack.Models.SongSearchModel
+
+@{
+    ViewData["Title"] = "Home Page";
+}
+@{
+    string FindMatches(string searchString, string SongText)
+    {
+        string[] searchKeywords = searchString.Split(" ");
+        string sPattern = string.Empty; 
+        string s = SongText;
+        foreach (var item in searchKeywords)
+        {
+            if (!string.IsNullOrEmpty(item))
+                s = System.Text.RegularExpressions.Regex.Replace(s, item, @"<span class='highlighted'>" + item + "</span>", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        }
+        return s;
+    }
+}
+<style>
+    .highlighted {
+        background-color: yellow;
+    }
+</style>
+
+
+
+
+
+<div>
+    <h2>Search Song</h2>
+    <h5>Search by song title pattern or artist name</h5>
+    @if (ViewData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible">
+            <strong>@TempData["ErrorMessage"]</strong>
+        </div>
+    }
+    <div class="mt-4 col-md-9 align-items-lg-center mb-3">
+        <form class="row m-lg-3" method="post" asp-action="FetchSongData" asp-controller="Home">
+            <div class="col-md-12 md-4 mb-3 ml-3">
+                @foreach (var option in Model.SearchOptions)
+                {
+                    <div class="col-md-6">
+                        <input class="form-check-input" type="radio" asp-for="@Model.SearchByOption" value="@option" />
+                        <label class="form-check-label" for="flexRadioDefault">
+                            Search by @option.ToString()
+                        </label>
+                    </div>
+                }
+                <span asp-validation-for="@Model.SearchByOption" class="text-danger"></span>
+            </div>
+            <div class="col-auto">
+                <input class="form-control form-control-lg" asp-for=@Model.SearchInput type="text" placeholder="Search" aria-label=".form-control-lg" />
+                <span asp-validation-for="@Model.SearchInput" class="text-danger"></span>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-lg btn-primary">Search</button>
+            </div>
+        </form>
+    </div>
+</div>
+@{
+    if (Model.Root != null && Model.Root.NSArray != null)
+    {
+        Model.RecordCount = Model.Root.NSArray.Song.Count;
+    }
+
+    if (Model.RecordCount > -1)
+    {
+        <table cellpadding="10" cellspacing="10" class="table table-striped" style="text-align:left">
+            <thead>
+                <tr>
+                    <th colspan="4" width="30%">Search Result : @Model.RecordCount records found.  </th>
+                </tr>
+            </thead>
+        </table>
+        <table cellpadding="10" cellspacing="10" class="table table-striped" style="text-align:left" id="tableSongList">
+            <thead>
+                <tr>
+                    <th width="25%">Artist</th>
+                    <th width="50%">Title</th>
+                    <th width="10%">Type</th>
+                    <th width="15%">Tab Page</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.RecordCount > 0)
+                {
+                    foreach (var song in Model.Root.NSArray.Song)
+                    {
+                        <tr>
+                            <td>
+                                <a href="http://www.songsterr.com/a/wa/artist?id=@song.Id" target="_blank">
+                                    @Html.Raw(FindMatches(Model.SearchInput, song.artist.name))
+                                </a>
+                            </td>
+
+                            @*<td><a href="http://www.songsterr.com/a/wa/song?id=@song.Id" target="_blank">@Html.DisplayFor(x => song.title)</a></td>*@
+
+                            <td>
+                                <a href="http://www.songsterr.com/a/wa/song?id=@song.Id" target="_blank">
+                                    @Html.Raw(FindMatches(Model.SearchInput, song.title))
+                                </a>
+                            </td>
+
+
+                            <td>@Html.DisplayFor(x => song.Type)</td>
+                            <td><a href="http://www.songsterr.com/a/wa/bestMatchForQueryString?s=@song.title&a=@song.artist.name" target="_blank"><i>Tab Page</i></a></td>
+                        </tr>
+
+                    }
+                }
+            </tbody>
+        </table>
+    }
+}
+@section scripts{
+    <partial name="_ValidationScriptsPartial" />
+}
+
+
+<script>
+    $(document).ready(function () {
+        $('#tableSongList').DataTable();
+    });
+</script>
